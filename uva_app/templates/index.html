@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UVa Researcher</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+<style>
+/* ── Reset & Variables ─────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --red:       #C8003B;
+  --red-deep:  #8A0028;
+  --red-light: #E8004A;
+  --red-bg:    #FDF0F3;
+  --red-muted: #F0C0CE;
+  --white:     #FFFFFF;
+  --off:       #FAF8F7;
+  --ink:       #1A0A0E;
+  --ink-soft:  #4A2030;
+  --ink-mute:  #8A6070;
+  --border:    #E8D0D8;
+  --r:         12px;
+  --font-d:    'Playfair Display', Georgia, serif;
+  --font-b:    'Source Serif 4', Georgia, serif;
+  --tr:        0.2s cubic-bezier(.4,0,.2,1);
+}
+html, body { height:100%; font-family:var(--font-b); background:var(--off); color:var(--ink); overflow:hidden; }
+
+/* ── Layout ────────────────────────────────────────── */
+.shell { display:grid; grid-template-columns:270px 1fr; height:100vh; }
+
+/* ── Sidebar ───────────────────────────────────────── */
+.sidebar {
+  background: var(--red);
+  color: #fff;
+  display: flex; flex-direction: column;
+  position: relative; overflow: hidden;
+}
+.sidebar::before {
+  content:''; position:absolute; top:-80px; right:-80px;
+  width:260px; height:260px; border:50px solid rgba(255,255,255,.07);
+  border-radius:50%; pointer-events:none;
+}
+.sidebar::after {
+  content:''; position:absolute; bottom:60px; left:-50px;
+  width:180px; height:180px; border:35px solid rgba(255,255,255,.05);
+  border-radius:50%; pointer-events:none;
+}
+.sb-header {
+  padding:24px 20px 18px;
+  border-bottom:1px solid rgba(255,255,255,.14);
+  position:relative; z-index:1;
+}
+.logo-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.logo-box {
+  width:50px; height:50px; background:#fff; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden; padding:5px; flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.25);
+}
+.logo-box img { width:100%; height:100%; object-fit:contain; }
+.logo-txt h1 { font-family:var(--font-d); font-size:1.2rem; font-weight:900; line-height:1.2; }
+.logo-txt small { font-size:.65rem; opacity:.65; letter-spacing:.08em; text-transform:uppercase; }
+.sb-desc { font-size:.75rem; opacity:.7; font-style:italic; line-height:1.5; }
+
+.sb-body { flex:1; padding:18px 16px; overflow-y:auto; position:relative; z-index:1; }
+.sb-body::-webkit-scrollbar { width:3px; }
+.sb-body::-webkit-scrollbar-thumb { background:rgba(255,255,255,.3); border-radius:2px; }
+
+.btn-new {
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding:10px 14px; background:rgba(255,255,255,.13);
+  border:1px solid rgba(255,255,255,.22); border-radius:8px;
+  color:#fff; font-family:var(--font-b); font-size:.83rem;
+  cursor:pointer; transition:var(--tr); text-align:left; margin-bottom:18px;
+}
+.btn-new:hover { background:rgba(255,255,255,.23); transform:translateY(-1px); }
+
+/* Phase tracker */
+.phase-tracker { padding:14px; background:rgba(0,0,0,.14); border-radius:10px; margin-bottom:16px; display:none; }
+.pt-title { font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; opacity:.55; margin-bottom:10px; }
+.pt-step { display:flex; align-items:center; gap:9px; padding:5px 0; font-size:.78rem; opacity:.4; transition:var(--tr); }
+.pt-step.active { opacity:1; }
+.pt-step.done   { opacity:.6; }
+.pt-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:rgba(255,255,255,.3); flex-shrink:0; transition:var(--tr);
+}
+.pt-step.active .pt-dot {
+  background:#fff; box-shadow:0 0 0 3px rgba(255,255,255,.25);
+  animation:pulse-d 1.4s ease-in-out infinite;
+}
+.pt-step.done .pt-dot { background:rgba(255,255,255,.7); }
+@keyframes pulse-d {
+  0%,100% { box-shadow:0 0 0 3px rgba(255,255,255,.25); }
+  50%      { box-shadow:0 0 0 6px rgba(255,255,255,.08); }
+}
+
+.sb-tips { padding:14px; background:rgba(0,0,0,.1); border-radius:10px; }
+.tip-label { font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; opacity:.5; margin-bottom:8px; }
+.tip { font-size:.73rem; opacity:.65; padding:3px 0 3px 12px; position:relative; line-height:1.4; }
+.tip::before { content:'→'; position:absolute; left:0; opacity:.5; }
+
+.sb-foot {
+  padding:14px 20px; border-top:1px solid rgba(255,255,255,.1);
+  font-size:.67rem; opacity:.45; text-align:center; position:relative; z-index:1;
+}
+
+/* ── Main ──────────────────────────────────────────── */
+.main { display:flex; flex-direction:column; background:var(--off); overflow:hidden; }
+.topbar {
+  padding:14px 26px; border-bottom:1px solid var(--border); background:#fff;
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0; box-shadow:0 1px 4px rgba(200,0,59,.06);
+}
+.topbar-title { font-family:var(--font-d); font-size:1rem; font-weight:700; color:var(--red-deep); }
+.status-badge {
+  display:flex; align-items:center; gap:5px; font-size:.72rem;
+  color:var(--ink-mute); background:var(--red-bg); border:1px solid var(--red-muted);
+  padding:3px 10px; border-radius:20px;
+}
+.s-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; }
+.s-dot.busy { background:var(--red); animation:blink-s .8s ease-in-out infinite; }
+@keyframes blink-s { 0%,100%{opacity:1;} 50%{opacity:.3;} }
+
+/* ── Chat window ───────────────────────────────────── */
+.chat-win {
+  flex:1; overflow-y:auto; padding:28px 24px;
+  display:flex; flex-direction:column; gap:20px; scroll-behavior:smooth;
+}
+.chat-win::-webkit-scrollbar { width:5px; }
+.chat-win::-webkit-scrollbar-thumb { background:var(--red-muted); border-radius:3px; }
+
+/* Welcome */
+.welcome {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  flex:1; text-align:center; padding:40px 32px; animation:fade-up .5s ease;
+}
+.w-icon {
+  width:64px; height:64px; background:var(--red); border-radius:16px;
+  display:flex; align-items:center; justify-content:center; margin-bottom:20px;
+  box-shadow:0 8px 32px rgba(200,0,59,.3);
+}
+.welcome h2 { font-family:var(--font-d); font-size:1.8rem; font-weight:900; color:var(--red-deep); margin-bottom:10px; }
+.welcome p  { color:var(--ink-mute); font-size:.95rem; max-width:400px; line-height:1.65; margin-bottom:28px; font-style:italic; }
+.sug-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:520px; }
+.sug-card {
+  background:#fff; border:1px solid var(--border); border-radius:var(--r);
+  padding:13px 15px; cursor:pointer; text-align:left; transition:var(--tr);
+  box-shadow:0 1px 3px rgba(200,0,59,.06);
+}
+.sug-card:hover { border-color:var(--red); box-shadow:0 4px 16px rgba(200,0,59,.12); transform:translateY(-2px); }
+.sug-card .s-lbl { font-size:.63rem; letter-spacing:.1em; text-transform:uppercase; color:var(--red); font-weight:600; margin-bottom:4px; }
+.sug-card p { font-size:.8rem; color:var(--ink-soft); line-height:1.4; font-style:normal; margin:0; }
+
+/* Messages */
+.msg { display:flex; gap:12px; animation:fade-up .3s ease; max-width:100%; }
+@keyframes fade-up { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+.msg.user { flex-direction:row-reverse; }
+.av {
+  width:34px; height:34px; border-radius:9px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-size:.7rem; font-weight:700; margin-top:2px;
+}
+.av.u { background:var(--ink); color:#fff; }
+.av.a { background:var(--red); color:#fff; overflow:hidden; padding:4px; }
+.av.a img { width:100%; height:100%; object-fit:contain; filter:brightness(0) invert(1); }
+
+/* Phase header bubble */
+.phase-header {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; margin-left:46px;
+  background:var(--red-bg); border:1px solid var(--red-muted);
+  border-radius:var(--r); font-size:.8rem; color:var(--red-deep);
+  font-weight:600; animation:fade-up .3s ease;
+}
+.phase-header .ph-icon { font-size:1rem; }
+.phase-header .ph-spinner {
+  width:14px; height:14px; border:2px solid var(--red-muted);
+  border-top-color:var(--red); border-radius:50%;
+  animation:spin .7s linear infinite; flex-shrink:0;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+.phase-header .ph-check { color:#22c55e; font-size:.9rem; }
+
+/* Content bubble */
+.bubble {
+  max-width:min(700px, calc(100% - 58px));
+  border-radius:var(--r); padding:14px 18px;
+  font-size:.9rem; line-height:1.7;
+}
+.msg.user .bubble {
+  background:var(--red); color:#fff; border-bottom-right-radius:3px;
+}
+.msg.ai .bubble {
+  background:#fff; color:var(--ink);
+  border:1px solid var(--border); box-shadow:0 1px 4px rgba(200,0,59,.07);
+  border-bottom-left-radius:3px;
+}
+
+/* bubble title badge */
+.bubble-title {
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--red-bg); border:1px solid var(--red-muted);
+  color:var(--red-deep); font-size:.68rem; font-weight:700;
+  padding:3px 10px; border-radius:20px; margin-bottom:12px;
+  letter-spacing:.04em; text-transform:uppercase;
+}
+
+/* Markdown inside bubbles */
+.bubble h1,.bubble h2,.bubble h3 { font-family:var(--font-d); color:var(--red-deep); margin:1.1em 0 .45em; line-height:1.3; }
+.bubble h1 { font-size:1.25rem; } .bubble h2 { font-size:1.05rem; } .bubble h3 { font-size:.95rem; }
+.bubble p  { margin:.55em 0; }
+.bubble ul,.bubble ol { padding-left:1.3em; margin:.45em 0; }
+.bubble li { margin:.2em 0; }
+.bubble strong { color:var(--red-deep); font-weight:600; }
+.bubble a  { color:var(--red); }
+.bubble blockquote { border-left:3px solid var(--red-muted); padding-left:11px; color:var(--ink-mute); font-style:italic; margin:.7em 0; }
+.bubble code { background:var(--red-bg); color:var(--red-deep); padding:1px 5px; border-radius:4px; font-size:.83em; font-family:'Fira Code',monospace; }
+.bubble pre  { background:var(--ink); border-radius:8px; padding:13px 15px; overflow-x:auto; margin:.7em 0; }
+.bubble pre code { background:none; color:#e8d8dc; padding:0; font-size:.8rem; }
+.bubble hr  { border:none; border-top:1px solid var(--border); margin:.9em 0; }
+.bubble table { border-collapse:collapse; width:100%; margin:.7em 0; font-size:.83rem; }
+.bubble th  { background:var(--red-bg); color:var(--red-deep); padding:6px 11px; text-align:left; font-weight:600; border:1px solid var(--border); }
+.bubble td  { padding:6px 11px; border:1px solid var(--border); }
+.bubble tr:nth-child(even) td { background:var(--red-bg); }
+
+/* Thinking dots */
+.thinking { display:flex; gap:5px; padding:6px 2px; }
+.thinking span { width:7px;height:7px;border-radius:50%;background:var(--red-muted); animation:bounce-d 1.2s ease-in-out infinite; }
+.thinking span:nth-child(2){animation-delay:.15s;}
+.thinking span:nth-child(3){animation-delay:.3s;}
+@keyframes bounce-d { 0%,80%,100%{transform:scale(.7);opacity:.5;} 40%{transform:scale(1);opacity:1;} }
+
+/* Typing cursor */
+.tcursor { display:inline-block; width:2px; height:1em; background:var(--red); margin-left:2px; vertical-align:text-bottom; animation:blink .7s step-end infinite; }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0;} }
+
+/* Research status card */
+.research-card {
+  margin-left:46px; padding:14px 18px;
+  background:#fff; border:1px solid var(--border); border-radius:var(--r);
+  box-shadow:0 1px 4px rgba(200,0,59,.07); animation:fade-up .3s ease;
+}
+.rc-title { font-size:.68rem; letter-spacing:.1em; text-transform:uppercase; color:var(--red); font-weight:700; margin-bottom:8px; }
+.rc-status { display:flex; align-items:center; gap:8px; font-size:.82rem; color:var(--ink-soft); }
+.rc-spinner { width:13px;height:13px;border:2px solid var(--red-muted);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite; }
+
+/* ── Input ──────────────────────────────────────────── */
+.input-area {
+  padding:14px 24px 18px; background:#fff;
+  border-top:1px solid var(--border); flex-shrink:0;
+  box-shadow:0 -3px 16px rgba(200,0,59,.04);
+}
+.input-form {
+  display:flex; align-items:flex-end; gap:9px;
+  background:var(--off); border:1.5px solid var(--border);
+  border-radius:13px; padding:9px 9px 9px 16px; transition:var(--tr);
+}
+.input-form:focus-within { border-color:var(--red); box-shadow:0 0 0 3px rgba(200,0,59,.1); background:#fff; }
+#user-input {
+  flex:1; background:none; border:none; outline:none;
+  font-family:var(--font-b); font-size:.9rem; color:var(--ink);
+  resize:none; max-height:140px; line-height:1.55; padding:3px 0;
+}
+#user-input::placeholder { color:var(--ink-mute); font-style:italic; }
+.send-btn {
+  width:38px; height:38px; background:var(--red); border:none;
+  border-radius:9px; cursor:pointer; display:flex; align-items:center;
+  justify-content:center; transition:var(--tr); flex-shrink:0; color:#fff;
+}
+.send-btn:hover:not(:disabled) { background:var(--red-deep); transform:scale(1.05); }
+.send-btn:disabled { opacity:.4; cursor:not-allowed; }
+.input-hint { text-align:center; font-size:.66rem; color:var(--ink-mute); margin-top:6px; font-style:italic; }
+
+/* Toast */
+.toast {
+  position:fixed; bottom:22px; right:22px; background:var(--ink); color:#fff;
+  padding:9px 16px; border-radius:9px; font-size:.8rem;
+  opacity:0; transform:translateY(8px); transition:var(--tr); z-index:999; pointer-events:none;
+}
+.toast.show { opacity:1; transform:translateY(0); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- ── Sidebar ──────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sb-header">
+    <div class="logo-row">
+      <div class="logo-box">
+        <img src="/logo" alt="UVa Logo" onerror="this.style.display='none';this.parentNode.innerHTML='<span style=\'font-family:serif;font-weight:900;color:#C8003B;font-size:1.1rem\'>UVa</span>'">
+      </div>
+      <div class="logo-txt">
+        <h1>UVa Researcher</h1>
+        <small>Universidad de Valladolid</small>
+      </div>
+    </div>
+    <p class="sb-desc">AI-powered deep research agent for academic and scientific inquiry.</p>
+  </div>
+
+  <div class="sb-body">
+    <button class="btn-new" id="btn-new">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 5v14M5 12h14"/></svg>
+      New Research Session
+    </button>
+
+    <div class="phase-tracker" id="phase-tracker">
+      <div class="pt-title">Research Progress</div>
+      <div class="pt-step" id="ps-clarifying"><div class="pt-dot"></div><span>Clarifying scope</span></div>
+      <div class="pt-step" id="ps-briefing">  <div class="pt-dot"></div><span>Writing brief</span></div>
+      <div class="pt-step" id="ps-researching"><div class="pt-dot"></div><span>Deep research</span></div>
+      <div class="pt-step" id="ps-writing">   <div class="pt-dot"></div><span>Final report</span></div>
+    </div>
+
+    <div class="sb-tips">
+      <div class="tip-label">Tips</div>
+      <div class="tip">Be specific about your research scope</div>
+      <div class="tip">Mention preferred depth or format</div>
+      <div class="tip">Ask follow-ups to refine results</div>
+      <div class="tip">The agent may ask for clarification</div>
+    </div>
+  </div>
+
+  <div class="sb-foot">Universidad de Valladolid · Deep Research · 2026</div>
+</aside>
+
+<!-- ── Main ─────────────────────────────────────────── -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title">Research Assistant</span>
+    <div class="status-badge">
+      <div class="s-dot" id="sdot"></div>
+      <span id="stext">Ready</span>
+    </div>
+  </div>
+
+  <div class="chat-win" id="chat-win">
+    <div class="welcome" id="welcome">
+      <div class="w-icon">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h2>What shall we research?</h2>
+      <p>Ask a complex question and the multi-agent system will scope, research, and synthesise a comprehensive report.</p>
+      <div class="sug-grid">
+        <div class="sug-card" onclick="setSug(this)">
+          <div class="s-lbl">Science</div>
+          <p>Latest advances in quantum computing error correction</p>
+        </div>
+        <div class="sug-card" onclick="setSug(this)">
+          <div class="s-lbl">Technology</div>
+          <p>Compare leading large language model architectures in 2025</p>
+        </div>
+        <div class="sug-card" onclick="setSug(this)">
+          <div class="s-lbl">Economics</div>
+          <p>Impact of AI automation on European labour markets</p>
+        </div>
+        <div class="sug-card" onclick="setSug(this)">
+          <div class="s-lbl">Medicine</div>
+          <p>Current clinical trials for Alzheimer's disease treatments</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-area">
+    <div class="input-form">
+      <textarea id="user-input" placeholder="Ask a research question…" rows="1" autocomplete="off" spellcheck="false"></textarea>
+      <button class="send-btn" id="send-btn" title="Send">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+    <div class="input-hint">Enter to send · Shift+Enter for new line</div>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────
+marked.setOptions({ breaks:true, gfm:true });
+
+const chatWin  = document.getElementById('chat-win');
+const input    = document.getElementById('user-input');
+const sendBtn  = document.getElementById('send-btn');
+const sdot     = document.getElementById('sdot');
+const stext    = document.getElementById('stext');
+const welcome  = document.getElementById('welcome');
+const tracker  = document.getElementById('phase-tracker');
+
+// Maps node name → bubble state
+// Each phase gets ONE bubble that accumulates streamed tokens
+const bubbles  = {}; // node → { wrap, contentEl, text }
+let   isBusy   = false;
+let   researchCard = null; // the "researching…" status card
+
+// Phase order for sidebar tracker
+const phaseOrder = ['clarifying','briefing','researching','writing'];
+const phaseIds   = {
+  clarifying:'ps-clarifying', briefing:'ps-briefing',
+  researching:'ps-researching', writing:'ps-writing'
+};
+
+// Title & icon per node
+const nodeMeta = {
+  clarify_with_user:       { icon:'🔍', title:'Scope Check'          },
+  write_research_brief:    { icon:'📋', title:'Research Brief'        },
+  supervisor:              { icon:'🤖', title:'Research Coordinator'  },
+  final_report_generation: { icon:'📄', title:'Final Report'          },
+};
+
+// ── Helpers ───────────────────────────────────────────────────────
+function scrollBot() { chatWin.scrollTop = chatWin.scrollHeight; }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showToast(m) {
+  const t=document.getElementById('toast'); t.textContent=m; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2400);
+}
+
+input.addEventListener('input', ()=>{
+  input.style.height='auto';
+  input.style.height=Math.min(input.scrollHeight,140)+'px';
+});
+input.addEventListener('keydown', e=>{
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); if(!isBusy) send(); }
+});
+sendBtn.addEventListener('click', ()=>{ if(!isBusy) send(); });
+
+function setSug(el) {
+  input.value = el.querySelector('p').textContent;
+  input.focus();
+  input.style.height='auto';
+  input.style.height=Math.min(input.scrollHeight,140)+'px';
+}
+
+document.getElementById('btn-new').addEventListener('click', async ()=>{
+  await fetch('/new_session',{method:'POST'});
+  chatWin.innerHTML=''; chatWin.appendChild(welcome); welcome.style.display='';
+  Object.keys(bubbles).forEach(k=>delete bubbles[k]);
+  researchCard=null;
+  resetPhases(); tracker.style.display='none';
+  showToast('New session started');
+});
+
+// ── Phase tracker ─────────────────────────────────────────────────
+function resetPhases() {
+  Object.values(phaseIds).forEach(id=>{
+    const el=document.getElementById(id); if(el) el.className='pt-step';
+  });
+}
+function setPhase(phase) {
+  tracker.style.display='block';
+  const idx=phaseOrder.indexOf(phase);
+  phaseOrder.forEach((p,i)=>{
+    const el=document.getElementById(phaseIds[p]); if(!el) return;
+    if(i<idx)        el.className='pt-step done';
+    else if(i===idx) el.className='pt-step active';
+    else             el.className='pt-step';
+  });
+}
+function donePhases() {
+  Object.values(phaseIds).forEach(id=>{
+    const el=document.getElementById(id); if(el) el.className='pt-step done';
+  });
+}
+
+// ── UI building ───────────────────────────────────────────────────
+function appendUser(text) {
+  if(welcome.parentNode) welcome.remove();
+  const w=document.createElement('div'); w.className='msg user';
+  w.innerHTML=`<div class="av u">YOU</div><div class="bubble">${esc(text)}</div>`;
+  chatWin.appendChild(w); scrollBot();
+}
+
+function appendThinking() {
+  const w=document.createElement('div'); w.className='msg ai'; w.id='thinking';
+  w.innerHTML=`<div class="av a"><img src="/logo" alt="UVa" onerror="this.style.display='none'"></div>
+    <div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+  chatWin.appendChild(w); scrollBot();
+}
+
+function removeThinking() {
+  const t=document.getElementById('thinking'); if(t) t.remove();
+}
+
+/** Open a new phase bubble or re-use if same node appears again */
+function openBubble(node, title, icon) {
+  removeThinking();
+  if(bubbles[node]) return; // already open
+
+  // Phase header (non-streaming nodes like supervisor show a status card instead)
+  const header = document.createElement('div');
+  header.className='phase-header'; header.id='ph-'+node;
+  header.innerHTML=`<span class="ph-icon">${icon}</span>
+    <span>${title}</span><div class="ph-spinner"></div>`;
+  chatWin.appendChild(header);
+
+  const w=document.createElement('div'); w.className='msg ai';
+  const logoImg=`<img src="/logo" alt="UVa" onerror="this.style.display='none'">`;
+  w.innerHTML=`<div class="av a">${logoImg}</div>
+    <div class="bubble" id="b-${node}">
+      <div class="bubble-title">${icon} ${title}</div>
+      <div id="bc-${node}"><span class="tcursor"></span></div>
+    </div>`;
+  chatWin.appendChild(w);
+
+  bubbles[node] = {
+    wrap: w,
+    headerEl: header,
+    contentEl: document.getElementById('bc-'+node),
+    text: ''
+  };
+  scrollBot();
+}
+
+function appendToken(node, text) {
+  if(!bubbles[node]) return;
+  bubbles[node].text += text;
+  const html = marked.parse(bubbles[node].text);
+  bubbles[node].contentEl.innerHTML = html + '<span class="tcursor"></span>';
+  scrollBot();
+}
+
+function closeBubble(node) {
+  if(!bubbles[node]) return;
+  const b = bubbles[node];
+  // Finalize text (remove cursor, apply hljs)
+  b.contentEl.innerHTML = marked.parse(b.text || '_(no content)_');
+  b.contentEl.querySelectorAll('pre code').forEach(el=>hljs.highlightElement(el));
+  // Mark header as done
+  if(b.headerEl) {
+    const sp=b.headerEl.querySelector('.ph-spinner');
+    if(sp) sp.outerHTML='<span class="ph-check">✓</span>';
+  }
+  delete bubbles[node];
+  scrollBot();
+}
+
+function showResearchCard() {
+  if(researchCard) return;
+  researchCard=document.createElement('div');
+  researchCard.className='research-card';
+  researchCard.innerHTML=`<div class="rc-title">🔬 Deep Research Underway</div>
+    <div class="rc-status"><div class="rc-spinner"></div>
+    Multi-agent research in progress — this may take a few minutes…</div>`;
+  chatWin.appendChild(researchCard); scrollBot();
+}
+
+function hideResearchCard() {
+  if(researchCard){ researchCard.remove(); researchCard=null; }
+}
+
+// ── Send ──────────────────────────────────────────────────────────
+async function send() {
+  const text=input.value.trim(); if(!text||isBusy) return;
+  isBusy=true; sendBtn.disabled=true;
+  input.value=''; input.style.height='auto';
+  sdot.className='s-dot busy'; stext.textContent='Researching…';
+  resetPhases();
+
+  appendUser(text);
+  appendThinking();
+
+  try {
+    const resp=await fetch('/chat',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text})
+    });
+    if(!resp.ok) throw new Error('Server error '+resp.status);
+
+    const reader=resp.body.getReader();
+    const dec=new TextDecoder();
+    let buf='';
+
+    while(true){
+      const {done,value}=await reader.read(); if(done) break;
+      buf+=dec.decode(value,{stream:true});
+      const lines=buf.split('\n'); buf=lines.pop();
+
+      for(const line of lines){
+        if(!line.startsWith('data: ')) continue;
+        const raw=line.slice(6).trim(); if(!raw) continue;
+        let ev; try{ev=JSON.parse(raw);}catch{continue;}
+
+        if(ev.type==='phase_start'){
+          removeThinking();
+          setPhase(ev.phase);
+          stext.textContent=ev.label;
+          if(ev.node==='supervisor'){
+            // Supervisor: show status card, no streaming bubble
+            showResearchCard();
+          } else {
+            const meta=nodeMeta[ev.node]||{icon:'⚡',title:ev.title};
+            openBubble(ev.node, meta.title, meta.icon);
+          }
+        }
+        else if(ev.type==='token'){
+          appendToken(ev.node, ev.text);
+        }
+        else if(ev.type==='phase_end'){
+          closeBubble(ev.node);
+        }
+        else if(ev.type==='research_complete'){
+          hideResearchCard();
+        }
+        else if(ev.type==='error'){
+          removeThinking(); hideResearchCard();
+          Object.keys(bubbles).forEach(k=>closeBubble(k));
+          const ew=document.createElement('div'); ew.className='msg ai';
+          ew.innerHTML=`<div class="av a" style="background:#dc2626">!</div>
+            <div class="bubble" style="color:var(--red)">
+              <strong>Error:</strong> ${esc(ev.text)}<br>
+              <small>Check server terminal for details and verify your <code>.env</code> API keys.</small>
+            </div>`;
+          chatWin.appendChild(ew); scrollBot();
+        }
+        else if(ev.type==='done'){
+          removeThinking(); hideResearchCard();
+          Object.keys(bubbles).forEach(k=>closeBubble(k));
+          donePhases();
+        }
+      }
+    }
+  } catch(err){
+    removeThinking(); hideResearchCard();
+    Object.keys(bubbles).forEach(k=>closeBubble(k));
+    const ew=document.createElement('div'); ew.className='msg ai';
+    ew.innerHTML=`<div class="av a" style="background:#dc2626">!</div>
+      <div class="bubble" style="color:var(--red)">
+        <strong>Connection error:</strong> ${esc(err.message)}<br>
+        <small>Make sure the Flask server is running: <code>uv run python uva_app\\app.py</code></small>
+      </div>`;
+    chatWin.appendChild(ew); scrollBot();
+  } finally {
+    isBusy=false; sendBtn.disabled=false;
+    sdot.className='s-dot'; stext.textContent='Ready';
+    input.focus();
+  }
+}
+</script>
+</body>
+</html>

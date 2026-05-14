@@ -7,7 +7,7 @@ echo "  Deep Research From Scratch — Setup"
 echo "=========================================="
 echo ""
 
-WORKDIR=/workspaces/deep-research-from-scratch
+WORKDIR="/workspaces/$(ls /workspaces | head -1)"
 VENV="$WORKDIR/.venv"
 
 # ── 1. Install uv ──────────────────────────────────────────────────────────────
